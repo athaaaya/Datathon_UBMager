@@ -1,0 +1,17 @@
+REQUIREMENTS
+
+pandas==2.0.3
+numpy==1.26.4
+scikit-learn==1.3.2
+xgboost==1.7.6
+imbalanced-learn==0.11.0
+shap==0.41.0
+matplotlib==3.7.2
+joblib==1.3.2
+git+https://github.com/omadson/fuzzy-c-means.git
+
+GOOGLE COLAB READY
+
+!pip install pandas numpy scikit-learn imbalanced-learn xgboost shap matplotlib joblib --quiet
+!pip install git+https://github.com/omadson/fuzzy-c-means.git --quiet
+
