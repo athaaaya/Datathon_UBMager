@@ -2,7 +2,7 @@
 
 > Predicting loan default risk by combining an **expert system**, **fuzzy logic** and a **machine learning ensemble**. Built for a datathon competition.
 
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white)
 ![XGBoost](https://img.shields.io/badge/XGBoost-1.7-189FDD)
 ![SHAP](https://img.shields.io/badge/Explainability-SHAP-8A2BE2)
@@ -63,6 +63,8 @@ flowchart LR
 
 ```
 Datathon_UBMager/
+├── images/
+│   └── shap_feature_importance.png # SHAP chart used in this README
 ├── notebooks/
 │   └── ubmager_credit_risk.ipynb   # Step-by-step notebook with explanations and results
 ├── src/
@@ -98,6 +100,29 @@ python src/ubmager_pipeline.py
 ```
 
 The script prints a classification report and ROC-AUC for each model, shows a SHAP feature-importance chart, and saves the trained ensemble to `ubmager_model.pkl`.
+
+## Results
+
+Evaluated on a 30% hold-out test set (13,461 rows) after SMOTE balancing:
+
+| Model | Accuracy | Precision | Recall | F1-score | ROC-AUC |
+|---|---|---|---|---|---|
+| **XGBoost** | **0.889** | **0.925** | 0.846 | 0.884 | **0.955** |
+| Soft Voting Ensemble | 0.888 | 0.907 | **0.863** | **0.885** | 0.948 |
+| Random Forest | 0.875 | 0.888 | 0.858 | 0.873 | 0.942 |
+| Logistic Regression (baseline) | 0.724 | 0.751 | 0.667 | 0.706 | 0.787 |
+
+The tree-based models clearly outperform the linear baseline. XGBoost has the best ranking quality (ROC-AUC 0.955), while the ensemble catches the most defaults (highest recall).
+
+> **Note:** SMOTE is currently applied before the train/test split, so the test set contains synthetic samples and these scores are likely optimistic. See [Future Improvements](#future-improvements).
+
+### What drives the predictions (SHAP)
+
+<p align="center">
+  <img src="images/shap_feature_importance.png" alt="SHAP feature importance for the XGBoost model" width="620">
+</p>
+
+Age, income, loan-to-income ratio and employment length are the strongest drivers. The expert-system score `CF_default` is the fifth most important feature, which shows that the analyst rules add useful signal on top of the raw data.
 
 ## Key Insights
 
