@@ -84,13 +84,17 @@ features = [
 X = df[features]
 y = df['loan_status']
 
-# SCALING + SMOTE
-scaler = MinMaxScaler()
-X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
-X_res, y_res = SMOTE(random_state=42).fit_resample(X_scaled, y)
+# SPLIT DATA FIRST (70% TRAIN & 30% TEST, STRATIFIED) TO AVOID DATA LEAKAGE
+X_train_raw, X_test_raw, y_train_raw, y_test = train_test_split(
+    X, y, test_size=0.3, stratify=y, random_state=42)
 
-# SPLIT DATA (70% TRAIN & 30% TEST)
-X_train, X_test, y_train, y_test = train_test_split(X_res, y_res, test_size=0.3, random_state=42)
+# SCALING (FIT ON TRAIN ONLY)
+scaler = MinMaxScaler()
+X_train_scaled = pd.DataFrame(scaler.fit_transform(X_train_raw), columns=X.columns)
+X_test = pd.DataFrame(scaler.transform(X_test_raw), columns=X.columns)
+
+# SMOTE ON TRAINING DATA ONLY (TEST SET KEEPS THE REAL CLASS BALANCE)
+X_train, y_train = SMOTE(random_state=42).fit_resample(X_train_scaled, y_train_raw)
 
 # DEFINE MODEL (ML)
 xgb = XGBClassifier(eval_metric='logloss', random_state=42)

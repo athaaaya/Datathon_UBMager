@@ -22,7 +22,7 @@ Lenders need to know which applicants are likely to default before approving a l
 - **Expert system (Certainty Factor).** Encodes credit-analyst rules, such as low income combined with short employment, or a prior default without fixed assets, into combined confidence scores for *default* and *non-default*.
 - **Fuzzy C-Means clustering.** Groups applicants into soft segments by age, income and employment length, so borderline applicants are not forced into a hard category.
 - **Feature engineering.** Adds `stable_job`, `has_fixed_asset` and `loan_to_income_ratio`.
-- **Class imbalance handling** with SMOTE oversampling.
+- **Leakage-free class balancing.** The data is split first; SMOTE oversampling and scaling are fitted on the training set only, so the test set reflects real applicants.
 - **Model ensemble.** XGBoost, Random Forest and Logistic Regression, combined in a soft-voting classifier.
 - **Explainability.** SHAP feature-importance analysis on the XGBoost model.
 - **Deployable artifact.** The final ensemble is exported as `ubmager_model.pkl` via `joblib`.
@@ -37,7 +37,9 @@ flowchart LR
     C --> E[Feature set]
     D --> E
     B --> E
-    E --> F[MinMax scaling<br/>+ SMOTE]
+    E --> S[Stratified<br/>train/test split]
+    S -->|train 70%| F[MinMax scaling<br/>+ SMOTE]
+    S -->|test 30%, untouched| K
     F --> G[XGBoost]
     F --> H[Random Forest]
     F --> I[Logistic Regression]
@@ -103,18 +105,20 @@ The script prints a classification report and ROC-AUC for each model, shows a SH
 
 ## Results
 
-Evaluated on a 30% hold-out test set (13,461 rows) after SMOTE balancing:
+Evaluated on a stratified 30% hold-out test set of **8,592 real applicants** (21.7% defaults). The scaler and SMOTE never see the test set, so these numbers reflect real-world performance. Precision, recall and F1 refer to the **default** class.
 
 | Model | Accuracy | Precision | Recall | F1-score | ROC-AUC |
 |---|---|---|---|---|---|
-| **XGBoost** | **0.889** | **0.925** | 0.846 | 0.884 | **0.955** |
-| Soft Voting Ensemble | 0.888 | 0.907 | **0.863** | **0.885** | 0.948 |
-| Random Forest | 0.875 | 0.888 | 0.858 | 0.873 | 0.942 |
-| Logistic Regression (baseline) | 0.724 | 0.751 | 0.667 | 0.706 | 0.787 |
+| **XGBoost** | **0.851** | **0.702** | 0.542 | 0.612 | **0.861** |
+| Soft Voting Ensemble | 0.849 | 0.667 | 0.600 | **0.632** | 0.853 |
+| Random Forest | 0.834 | 0.624 | 0.584 | 0.603 | 0.833 |
+| Logistic Regression (baseline) | 0.751 | 0.449 | **0.655** | 0.533 | 0.780 |
 
-The tree-based models clearly outperform the linear baseline. XGBoost has the best ranking quality (ROC-AUC 0.955), while the ensemble catches the most defaults (highest recall).
+- **XGBoost** ranks applicants best (ROC-AUC 0.861) and is the most precise: 70% of the applicants it flags really do default.
+- The **soft-voting ensemble** gives the best balance between catching defaults and avoiding false alarms (highest F1).
+- All tree-based models clearly beat the logistic regression baseline and the 78.3% accuracy of always predicting "no default".
 
-> **Note:** SMOTE is currently applied before the train/test split, so the test set contains synthetic samples and these scores are likely optimistic. See [Future Improvements](#future-improvements).
+> **Methodology note:** an earlier version applied SMOTE before the train/test split, which leaked synthetic copies of training data into the test set and inflated ROC-AUC to 0.955. Splitting first gives the lower but trustworthy scores above.
 
 ### What drives the predictions (SHAP)
 
@@ -122,7 +126,7 @@ The tree-based models clearly outperform the linear baseline. XGBoost has the be
   <img src="images/shap_feature_importance.png" alt="SHAP feature importance for the XGBoost model" width="620">
 </p>
 
-Age, income, loan-to-income ratio and employment length are the strongest drivers. The expert-system score `CF_default` is the fifth most important feature, which shows that the analyst rules add useful signal on top of the raw data.
+Loan-to-income ratio, income, age and employment length are the strongest drivers. The expert-system score `CF_default` is the fifth most important feature, which shows that the analyst rules add useful signal on top of the raw data.
 
 ## Key Insights
 
@@ -139,8 +143,8 @@ Based on the expert rules and model analysis:
 
 ## Future Improvements
 
-- Apply SMOTE **only to the training split** (after `train_test_split`) so that test metrics reflect real-world class balance.
 - Tune hyperparameters with cross-validated search.
+- Tune the decision threshold to trade precision against recall for the lender's risk appetite.
 - Calibrate the certainty-factor rule thresholds against the data.
 - Serve the saved model through a simple API or Streamlit demo.
 
