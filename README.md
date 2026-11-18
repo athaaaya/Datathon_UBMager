@@ -64,7 +64,7 @@ flowchart LR
 ```
 Datathon_UBMager/
 ├── notebooks/
-│   └── ubmager_credit_risk.ipynb   # Step-by-step notebook with explanations (Bahasa Indonesia)
+│   └── ubmager_credit_risk.ipynb   # Step-by-step notebook with explanations and results
 ├── src/
 │   └── ubmager_pipeline.py         # The full pipeline as a single runnable script
 ├── requirements.txt
